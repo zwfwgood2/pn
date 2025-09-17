@@ -101,6 +101,11 @@ public class ProcessEngine {
                     }
                 }
                 context.setAttribute("nodeConfig", nodeConfigMap);
+                //设置输入、输出参数名称和类型
+                //回放只回放当前失败节点，也就是支持向前补偿
+                //优化执行流程模版，特别是上下文数据可否只存当前节点的输入和公共参数
+                //优化执行流程模版，执行记录sql合并，不要执行太多
+                //缓存写同步、公共配置初始化和定时更新逻辑检查
 
                 // 获取节点实现
                 Node node = nodeMap.get(nodeId);

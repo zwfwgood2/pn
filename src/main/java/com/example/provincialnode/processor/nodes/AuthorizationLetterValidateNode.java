@@ -1,9 +1,9 @@
 package com.example.provincialnode.processor.nodes;
 
 import com.example.provincialnode.common.ResultCode;
+import com.example.provincialnode.exception.BusinessException;
 import com.example.provincialnode.processor.Node;
 import com.example.provincialnode.processor.context.ProcessContext;
-import com.example.provincialnode.service.BusinessException;
 import com.example.provincialnode.service.SysAuthorizationLetterService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

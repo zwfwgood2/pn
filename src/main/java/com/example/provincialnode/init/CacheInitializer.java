@@ -74,7 +74,7 @@ public class CacheInitializer implements CommandLineRunner {
         try {
             // 获取所有流程节点配置
             List<SysProcessNodeConfigEntity> allNodeConfigs = sysProcessNodeConfigService.selectAll();
-            // 按流程代码分组
+            // 按流程编码分组
             Map<String, List<SysProcessNodeConfigEntity>> configsByProcessCode = allNodeConfigs.stream()
                     .collect(Collectors.groupingBy(SysProcessNodeConfigEntity::getProcessCode));
             

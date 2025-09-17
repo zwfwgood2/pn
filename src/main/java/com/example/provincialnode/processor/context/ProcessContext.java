@@ -26,7 +26,7 @@ public class ProcessContext {
     private Map<String, Object> requestParams = new HashMap<>();
 
     // 响应结果
-    private Result<?> responseResult;
+    private Object responseData;
 
     // 处理状态
     private boolean success = true;

@@ -44,6 +44,19 @@ public class NationalNodeScheduler {
     }
 
     /**
+     * 每90天更新一次密码并刷新token
+     * 使用cron表达式：0 0 0 1/90 * ? 表示每90天执行一次
+     * 或者使用fixedRate=7776000000表示每90天执行一次
+     */
+    @Scheduled(fixedRate = 7776000000L) // 7776000000毫秒 = 90天
+    public void scheduledUpdatePassword() {
+        logger.info("开始执行定时任务：更新全国节点密码");
+        nationalNodeService.updateUserPassword("admin", "admin", "admin");
+        nationalNodeService.refreshToken();
+        logger.info("定时任务执行完成：更新全国节点密码");
+    }
+
+    /**
      * 系统启动时初始化全国节点配置
      * 可以在此方法中首次获取公钥和token
      */
