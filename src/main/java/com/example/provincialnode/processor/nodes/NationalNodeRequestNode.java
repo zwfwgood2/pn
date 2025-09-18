@@ -41,7 +41,7 @@ public class NationalNodeRequestNode implements Node {
         try {
             // 1. 获取请求参数和接口信息
             String interfaceCode = context.getInterfaceCode();
-            Map<String, Object> requestParams = context.getRequestParams();
+            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
             
             // 2. 构建全国节点请求URL
             String requestUrl = nationalNodeConfig.getNationalNodeUrl() + "/" + interfaceCode;
@@ -50,7 +50,7 @@ public class NationalNodeRequestNode implements Node {
             JSONObject requestBody = new JSONObject();
             requestBody.putAll(requestParams);
             
-            // 4. 发送请求到全国节点（带重试机制）
+            // 4. 发送请求到全国节点
             String response = sendRequest(requestUrl, requestBody.toJSONString());
             
             // 5. 解析响应结果
@@ -61,7 +61,7 @@ public class NationalNodeRequestNode implements Node {
             }
             
             // 6. 将全国节点返回结果保存到上下文中
-            context.setAttribute("nationalNodeResponse", response);
+            context.setAttribute(Node.outParamName, response);
             
             log.info("全国节点请求成功: {}, 响应: {}", requestUrl, response);
             return true;

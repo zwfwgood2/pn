@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
  * 异常处理节点
  * 负责处理流程执行过程中出现的异常情况
  */
+@Deprecated
 @Slf4j
 @Component("exceptionHandlerNode")
 public class ExceptionHandlerNode implements Node {

@@ -17,6 +17,10 @@ import java.util.Map;
 /**
  * 增强型参数验证节点
  * 支持配置化规则，使用可扩展的校验器进行参数校验
+ * node_config字段配置示例：
+ * {
+*   "convertRules": "{\"orgCode\":\"organizationCode\",\"userName\":\"username\",\"addressInfo\":{\"city\":\"cityName\"}}"
+    }
  */
 @Slf4j
 @Component("paramValidateNode")
@@ -45,8 +49,7 @@ public class ParamValidateNode implements Node {
             JSONArray validateRules = JSON.parseArray(validateRulesJson);
             
             // 获取请求参数
-            Map<String, Object> requestParams = context.getRequestParams();
-            
+            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
             // 执行参数校验
             for (int i = 0; i < validateRules.size(); i++) {
                 JSONObject rule = validateRules.getJSONObject(i);

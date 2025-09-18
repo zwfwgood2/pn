@@ -36,12 +36,11 @@ public class MainController {
      * 处理所有接口请求
      * 通配符路径，根据URL后缀识别接口
      */
-    @RequestMapping(value = "{b}", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
-    public Result<JSONObject> handleRequest(MultipartFile file, @PathVariable String b , HttpServletRequest request, @RequestBody(required = false) Map<String, Object> requestBody) {
+    @RequestMapping(value = "{code}", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public Result<JSONObject> handleRequest(MultipartFile file, @PathVariable String code , HttpServletRequest request, @RequestBody(required = false) Map<String, Object> requestBody) {
         // 1. 获取请求URL和请求方法
         String requestURI = request.getRequestURI();
         String requestMethod = request.getMethod();
-        log.info(b);
         // 2. 从URL中提取接口路径
         // 去除上下文路径
         String contextPath = request.getContextPath();
@@ -78,7 +77,6 @@ public class MainController {
         } catch (Exception e) {
             String errorMsg = "处理请求异常: " + e.getMessage();
             log.error(errorMsg, e);
-            
             // 记录异常日志
             String requestId = UUID.randomUUID().toString();
             log.error("请求ID: {}, 请求URL: {}, 异常信息: {}", requestId, interfacePath, e.getMessage());
@@ -97,7 +95,7 @@ public class MainController {
         
         try {
             // 调用流程引擎进行重放
-            Result<?> result = processEngine.replayProcess(executionId);
+            Result<JSONObject> result = processEngine.replayProcess(executionId);
             
             log.info("流程重放完成: {}, 结果: {}", executionId, result.getCode());
             return result;

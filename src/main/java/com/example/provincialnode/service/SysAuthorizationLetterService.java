@@ -3,6 +3,7 @@ package com.example.provincialnode.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.provincialnode.common.ResultCode;
 import com.example.provincialnode.entity.SysAuthorizationLetterEntity;
+import com.example.provincialnode.exception.BusinessException;
 import com.example.provincialnode.mapper.SysAuthorizationLetterMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+
 /**
  * 授权书服务类
  * 处理授权书相关的业务逻辑

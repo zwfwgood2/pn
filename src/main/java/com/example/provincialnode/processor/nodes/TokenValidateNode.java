@@ -34,7 +34,7 @@ public class TokenValidateNode implements Node {
         
         try {
             // 1. 获取请求参数中的AppKey和Token
-            Map<String, Object> requestParams = context.getRequestParams();
+            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
             String appKey = context.getAppKey();
             String token = (String) requestParams.get("token");
 

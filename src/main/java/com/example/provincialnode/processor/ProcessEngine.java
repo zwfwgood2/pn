@@ -12,6 +12,8 @@ import com.example.provincialnode.service.SysProcessNodeConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import javax.swing.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,10 @@ import java.util.concurrent.*;
 /**
  * 流程引擎类
  * 处理流程的执行、异步执行和重试逻辑
+ * TODO:  回放只回放当前失败节点，也就是支持向前补偿
+ *        优化执行流程模版，特别是上下文数据可否只存当前节点的输入和公共参数
+ *        优化执行流程模版，执行记录sql合并，不要执行太多
+ *        缓存写同步、公共配置初始化和定时更新逻辑检查
  */
 @Slf4j
 @Component
@@ -78,7 +84,6 @@ public class ProcessEngine {
                 context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误: 流程未配置节点");
                 return Result.error(context.getErrorCode(), context.getErrorMessage());
             }
-
             // 按顺序执行节点
             for (SysProcessNodeConfigEntity nodeConfig : nodeConfigs) {
                 String nodeId = nodeConfig.getNodeId();
@@ -102,11 +107,11 @@ public class ProcessEngine {
                 }
                 context.setAttribute("nodeConfig", nodeConfigMap);
                 //设置输入、输出参数名称和类型
-                //回放只回放当前失败节点，也就是支持向前补偿
-                //优化执行流程模版，特别是上下文数据可否只存当前节点的输入和公共参数
-                //优化执行流程模版，执行记录sql合并，不要执行太多
-                //缓存写同步、公共配置初始化和定时更新逻辑检查
-
+                context.setAttribute(Node.inParamName,nodeConfigMap.get(Node.inParamName)==null?Node.requestParams:nodeConfigMap.get(Node.inParamName));
+                context.setAttribute(Node.requestParams,context.getRequestParams());
+                context.setAttribute(Node.inParamType,nodeConfigMap.get(Node.inParamType));
+                context.setAttribute(Node.outParamName,nodeConfigMap.get(Node.outParamName));
+                context.setAttribute(Node.outParamType,nodeConfigMap.get(Node.outParamType));
                 // 获取节点实现
                 Node node = nodeMap.get(nodeId);
                 if (node == null) {
@@ -133,7 +138,8 @@ public class ProcessEngine {
             // 生成执行结果
             Result<JSONObject> result;
             if (context.isSuccess()) {
-                result = Result.success(context.getAttribute("responseData"));
+                Map<String, String> lastNodeConfigMap = JSON.parseObject(nodeConfigs.get(nodeConfigs.size() - 1).getNodeConfig(),Map.class);
+                result = Result.success(context.getAttribute(lastNodeConfigMap.get(Node.outParamName)));
             } else {
                 result = Result.error(context.getErrorCode(), context.getErrorMessage());
             }
@@ -244,7 +250,7 @@ public class ProcessEngine {
      * @param executionId 执行ID
      * @return 执行结果
      */
-    public Result<?> replayProcess(String executionId) {
+    public Result<JSONObject> replayProcess(String executionId) {
         log.info("开始重放流程执行: {}", executionId);
 
         try {

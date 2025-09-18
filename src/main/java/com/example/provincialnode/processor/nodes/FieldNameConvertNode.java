@@ -29,7 +29,7 @@ public class FieldNameConvertNode implements Node {
         log.info("执行字段名称转换节点: {}", context.getRequestId());
         
         try {
-            // 从节点配置中获取转换规则
+            //从节点配置中获取转换规则
             Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
             if (nodeConfig == null || !nodeConfig.containsKey("convertRules")) {
                 log.info("未配置字段转换规则，跳过字段转换");
@@ -41,39 +41,16 @@ public class FieldNameConvertNode implements Node {
             JSONObject convertRules = JSON.parseObject(convertRulesJson);
             
             // 获取要转换的数据
-            // 默认从requestParams中获取数据，可以通过配置指定数据源
-            String dataSource = nodeConfig.containsKey("dataSource") ? nodeConfig.get("dataSource").toString() : "requestParams";
-            Object sourceData = null;
-            
-            if ("requestParams".equals(dataSource)) {
-                sourceData = context.getRequestParams();
-            } else if ("responseData".equals(dataSource)) {
-                sourceData = context.getAttribute("responseData");
-            } else {
-                sourceData = context.getAttribute(dataSource);
-            }
-            
+            Object sourceData = context.getAttribute(Node.inParamName);
             if (sourceData == null) {
-                log.info("数据源 {} 中没有数据，跳过字段转换", dataSource);
+                log.info("数据源 {} 中没有数据，跳过字段转换", sourceData);
                 return true;
             }
-            
             // 执行字段转换
             Object convertedData = convertFields(sourceData, convertRules);
             
             // 将转换后的数据放回指定的目标位置
-            String targetDataKey = nodeConfig.containsKey("targetDataKey") ? 
-                    nodeConfig.get("targetDataKey").toString() : 
-                    ("requestParams".equals(dataSource) ? "requestParams" : "responseData");
-            
-            if ("requestParams".equals(targetDataKey)) {
-                context.setRequestParams((Map<String, Object>) convertedData);
-            } else if ("responseData".equals(targetDataKey)) {
-                context.setAttribute("responseData", convertedData);
-            } else {
-                context.setAttribute(targetDataKey, convertedData);
-            }
-            
+            context.setAttribute(Node.outParamName, convertedData);
             log.info("字段名称转换完成: {}", context.getRequestId());
             return true;
         } catch (Exception e) {

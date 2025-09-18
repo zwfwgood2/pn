@@ -1,21 +1,19 @@
 package com.example.provincialnode.processor.nodes;
 
+import cn.hutool.core.util.StrUtil;
 import com.example.provincialnode.common.ResultCode;
+import com.example.provincialnode.common.SignUtil;
+import com.example.provincialnode.config.NationalNodeConfig;
 import com.example.provincialnode.entity.SysAccessOrganizationEntity;
 import com.example.provincialnode.processor.Node;
 import com.example.provincialnode.processor.context.ProcessContext;
 import com.example.provincialnode.service.SysAccessOrganizationService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
+
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * 验签节点
@@ -27,10 +25,8 @@ public class SignatureVerifyNode implements Node {
 
     @Autowired
     private SysAccessOrganizationService sysAccessOrganizationService;
-
-    @Value("${provincial.node.signature.algorithm}")
-    private String signatureAlgorithm;
-
+    @Autowired
+    private NationalNodeConfig mationalNodeConfig;
     private static final String NODE_ID = "signatureVerifyNode";
     private static final String NODE_NAME = "验签节点";
 
@@ -40,11 +36,10 @@ public class SignatureVerifyNode implements Node {
         
         try {
             // 1. 获取请求参数和AppKey
-            Map<String, Object> requestParams = context.getRequestParams();
+            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
             String appKey = context.getAppKey();
-            
             // 2. 从请求参数中获取签名
-            String signature = (String) requestParams.get("signature");
+            String signature = (String) requestParams.get("signatureData");
             if (signature == null || signature.isEmpty()) {
                 context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "签名不能为空");
                 log.error("签名不能为空");
@@ -56,22 +51,32 @@ public class SignatureVerifyNode implements Node {
             if (org == null) {
                 throw new RuntimeException("未找到对应的机构信息: " + appKey);
             }
-            String publicKeyStr = org.getPublicKey();
-            
-            // 4. 构建验签数据（排除signature参数）
-            Map<String, Object> signData = new TreeMap<>(requestParams);
-            signData.remove("signature");
-            String signContent = buildSignContent(signData);
-            
+
+            Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
+            String side =nodeConfig.get(Node.side).toString();
+            //默认为市级端点
+            String verifyPublicKey =requestParams.get("publicKey").toString();
+            String decryptPrivateKey=org.getPrivateKey();
+            //根据端点获取解密私钥和验签公钥
+            //全国端点
+            if(side.equals("national")){
+                SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
+                verifyPublicKey=mationalNodeConfig.getPublicKey();
+                decryptPrivateKey=self.getPrivateKey();
+            }
             // 5. 验证签名
-            boolean verifyResult = verifySignature(signContent, signature, publicKeyStr);
-            
-            if (!verifyResult) {
+            String requestData = SignUtil.verifySignature(requestParams,verifyPublicKey,decryptPrivateKey);
+            if (StrUtil.isEmpty(requestData)) {
                 context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "签名验证失败");
                 log.error("签名验证失败: appKey={}", appKey);
                 return false;
             }
-            
+            Map<String,Object> verifyResult=new HashMap<>();
+            verifyResult.putAll(requestParams);
+            verifyResult.put("requestData",requestData);
+
+            //将验签结果放入上下文
+            context.setAttribute(Node.outParamName,verifyResult);
             log.info("签名验证成功: {}", context.getRequestId());
             return true;
         } catch (Exception e) {
@@ -81,47 +86,7 @@ public class SignatureVerifyNode implements Node {
         }
     }
 
-    /**
-     * 构建签名内容
-     * 按照一定规则将参数排序并拼接
-     * 
-     * @param params 参数Map
-     * @return 签名内容字符串
-     */
-    private String buildSignContent(Map<String, Object> params) {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            if (entry.getValue() != null) {
-                sb.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
-            }
-        }
-        if (sb.length() > 0) {
-            sb.deleteCharAt(sb.length() - 1);
-        }
-        return sb.toString();
-    }
 
-    /**
-     * 验证签名
-     * 
-     * @param content 签名内容
-     * @param signature 签名值
-     * @param publicKeyStr 公钥字符串
-     * @return 验证结果
-     */
-    private boolean verifySignature(String content, String signature, String publicKeyStr) throws Exception {
-        // 1. 将Base64编码的公钥字符串转换为PublicKey对象
-        byte[] publicKeyBytes = Base64.decodeBase64(publicKeyStr);
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey publicKey = keyFactory.generatePublic(keySpec);
-        
-        // 2. 验证签名
-        Signature sig = Signature.getInstance(signatureAlgorithm);
-        sig.initVerify(publicKey);
-        sig.update(content.getBytes("UTF-8"));
-        return sig.verify(Base64.decodeBase64(signature));
-    }
 
     @Override
     public String getNodeId() {
