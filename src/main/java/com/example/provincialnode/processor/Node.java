@@ -22,6 +22,7 @@ public interface Node {
 
     String side="side";
     String requestParams="requestParams";
+    String responseData="responseData";
     String NodeConfig="NodeConfig";
     /**
      * 节点执行方法

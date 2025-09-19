@@ -81,7 +81,7 @@ public class InterfaceProcessTest {
         organization.setStatus(1);
         
         // 4. 模拟处理结果
-        Result<?> mockResult = Result.success("测试数据");
+        Result mockResult = Result.success();
 
         // 6. 构建请求参数
         Map<String, Object> requestBody = new HashMap<>();
@@ -132,7 +132,7 @@ public class InterfaceProcessTest {
         organization.setStatus(1);
         
         // 4. 模拟处理结果
-        Result<?> mockResult = Result.success("数据上传成功");
+        Result mockResult = Result.success();
 
         // 6. 构建请求参数
         String requestJson = "{\"enterpriseName\":\"测试企业\",\"creditCode\":\"91110000MA001AA1AA\",\"contactPerson\":\"张三\",\"contactPhone\":\"13800138000\"}";

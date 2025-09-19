@@ -38,6 +38,7 @@ public class LogRecordNode implements Node {
             requestLog.setAppKey(context.getAppKey());
             requestLog.setRequestTime(new Date());
             requestLog.setRequestParams(JSON.toJSONString(context.getRequestParams()));
+            requestLog.setRequestIp(context.getAttribute("requestIp"));
             requestLog.setStatus(1); // 默认成功
             
             // 2. 保存请求日志

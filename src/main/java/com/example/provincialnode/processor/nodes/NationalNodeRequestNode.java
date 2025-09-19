@@ -1,5 +1,7 @@
 package com.example.provincialnode.processor.nodes;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.example.provincialnode.common.ResultCode;
 import com.example.provincialnode.config.NationalNodeConfig;
 import com.example.provincialnode.processor.Node;
@@ -12,12 +14,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.alibaba.fastjson.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -37,7 +38,6 @@ public class NationalNodeRequestNode implements Node {
     @Override
     public boolean execute(ProcessContext context) {
         log.info("执行全国节点请求节点: {}", context.getRequestId());
-        
         try {
             // 1. 获取请求参数和接口信息
             String interfaceCode = context.getInterfaceCode();
@@ -45,11 +45,14 @@ public class NationalNodeRequestNode implements Node {
             
             // 2. 构建全国节点请求URL
             String requestUrl = nationalNodeConfig.getNationalNodeUrl() + "/" + interfaceCode;
-            
+
             // 3. 构建请求参数
             JSONObject requestBody = new JSONObject();
+            //移除全国节点不需要的字段
+            requestBody.remove("txnIttChnlId");
+            requestBody.remove("txnIttChnlCgyCode");
             requestBody.putAll(requestParams);
-            
+
             // 4. 发送请求到全国节点
             String response = sendRequest(requestUrl, requestBody.toJSONString());
             
@@ -59,10 +62,30 @@ public class NationalNodeRequestNode implements Node {
                 log.error("全国节点返回空结果: {}", requestUrl);
                 return false;
             }
-            
-            // 6. 将全国节点返回结果保存到上下文中
-            context.setAttribute(Node.outParamName, response);
-            
+            //6. 转换为市级接口需要的格式
+            Map<String,Object> nationalNodeResponse = JSON.parseObject(response, Map.class);
+            if((boolean)nationalNodeResponse.get("success")==false){
+                context.markFailure(nationalNodeResponse.get("C-Response-Code").toString(), nationalNodeResponse.get("C-Response-Desc").toString());
+                log.error("全国节点返回异常，结果: {}", nationalNodeResponse);
+                return false;
+            }
+            Map<String,Object> cityNodeResponse = new LinkedHashMap<>(4);
+            cityNodeResponse.put("C-API-Status",(boolean)nationalNodeResponse.get("success")==true? "00":"01");
+            cityNodeResponse.put("C-Response-Code",nationalNodeResponse.get("C-Response-Code"));
+            cityNodeResponse.put("C-Response-Desc",nationalNodeResponse.get("C-Response-Desc"));
+            Map<String,Object> body =null ;
+            if((boolean)nationalNodeResponse.get("success")==true){
+                body = new LinkedHashMap<>(7);
+                body.put("txnCommCom",null);
+                body.put("fileCom",null);
+                body.put("timestamp",nationalNodeResponse.get("timestamp"));
+                body.put("key",nationalNodeResponse.get("key"));
+                body.put("signatureData",nationalNodeResponse.get("signatureData"));
+                body.put("data",nationalNodeResponse.get("data"));
+            }
+            cityNodeResponse.put("C-Response-Body",body);
+            // 7. 将全国节点返回结果保存到上下文中
+            context.setAttribute(Node.outParamName, cityNodeResponse);
             log.info("全国节点请求成功: {}, 响应: {}", requestUrl, response);
             return true;
         } catch (Exception e) {

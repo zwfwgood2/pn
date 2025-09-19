@@ -1,9 +1,8 @@
 package com.example.provincialnode.job;
 
-import com.example.provincialnode.common.Result;
-import com.example.provincialnode.common.ResultCode;
 import com.example.provincialnode.entity.SysProcessExecutionRecordEntity;
 import com.example.provincialnode.processor.ProcessEngine;
+import com.example.provincialnode.processor.context.ProcessContext;
 import com.example.provincialnode.service.SysProcessExecutionRecordService;
 import com.xxl.job.core.biz.model.ReturnT;
 import com.xxl.job.core.handler.annotation.XxlJob;
@@ -53,17 +52,17 @@ public class ProcessRecoveryJob {
                                 record.getProcessCode(), record.getExecutionId());
                         
                         // 使用ProcessEngine重放流程
-                        Result<?> result = processEngine.replayProcess(record.getExecutionId());
+                        ProcessContext context = processEngine.replayProcess(record.getExecutionId());
                         
-                        if (result.getCode() != null && result.getCode().equals(ResultCode.SUCCESS.getCode())) {
+                        if (context.isSuccess()) {
                             log.info("流程恢复成功: {}, 执行ID: {}", 
                                     record.getProcessCode(), record.getExecutionId());
                         } else {
                             log.error("流程恢复失败: {}, 执行ID: {}, 错误信息: {}", 
-                                    record.getProcessCode(), record.getExecutionId(), result.getMessage());
+                                    record.getProcessCode(), record.getExecutionId(),context.getErrorMessage());
                             // 标记为需要重试，让下一次定时任务继续尝试
                             processExecutionRecordService.markForRetry(
-                                    record.getExecutionId(), result.getMessage());
+                                    record.getExecutionId(), context.getErrorMessage());
                         }
                     } catch (Exception e) {
                         log.error("流程恢复异常: {}, 执行ID: {}", 

@@ -31,36 +31,27 @@ public class TokenValidateNode implements Node {
     @Override
     public boolean execute(ProcessContext context) {
         log.info("执行Token验证节点: {}", context.getRequestId());
-        
         try {
             // 1. 获取请求参数中的AppKey和Token
             Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
-            String appKey = context.getAppKey();
             String token = (String) requestParams.get("token");
 
-            // 2. 验证AppKey是否存在
-            if (appKey == null || sysAccessOrganizationService.selectByAppKey(appKey) == null) {
-                context.markFailure(ResultCode.INVALID_APP_KEY.getCode(), "无效的AppKey");
-                log.error("无效的AppKey: {}", appKey);
-                return false;
-            }
-
-            // 3. 验证Token是否有效
+            // 2. 验证Token是否有效
             if (token == null || token.isEmpty()) {
                 context.markFailure(ResultCode.INVALID_TOKEN.getCode(), "Token不能为空");
                 log.error("Token不能为空");
                 return false;
             }
 
-            // 这里简化了Token验证逻辑，实际项目中应该根据具体的Token生成和验证规则实现
             // 例如JWT验证、Redis中Token有效性检查等
-            boolean tokenValid = validateToken(appKey, token);
+            boolean tokenValid = validateToken(token);
             if (!tokenValid) {
                 context.markFailure(ResultCode.INVALID_TOKEN.getCode(), "无效的Token");
                 log.error("无效的Token: {}", token);
                 return false;
             }
-
+            //TODO 从token中取出appKey并放入上下文
+            context.setAttribute("appKey", null);
             log.info("Token验证通过: {}", context.getRequestId());
             return true;
         } catch (Exception e) {
@@ -73,16 +64,14 @@ public class TokenValidateNode implements Node {
     /**
      * 验证Token的有效性
      * 使用Redis验证token
-     * @param appKey 应用密钥
      * @param token 令牌
      * @return 是否有效
      */
-    private boolean validateToken(String appKey, String token) {
+    private boolean validateToken(String token) {
         // 从Redis中验证token
         String tokenKey = "node:token:" + token;
         String storedAppKey = cacheService.get(tokenKey, String.class);
-        
-        return storedAppKey != null && storedAppKey.equals(appKey);
+        return storedAppKey != null;
     }
 
     @Override

@@ -44,7 +44,7 @@ public class VerifyNode implements Node {
             // 2. 从请求参数中获取签名
             String signature = (String) requestParams.get("signatureData");
             if (signature == null || signature.isEmpty()) {
-                context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "签名不能为空");
+                context.markFailure(ResultCode.VERIFY_ERROR.getCode(), "签名不能为空");
                 log.error("签名不能为空");
                 return false;
             }
@@ -55,28 +55,42 @@ public class VerifyNode implements Node {
                 throw new RuntimeException("未找到对应的机构信息: " + appKey);
             }
 
+            //4. 从节点配置中获取签名端点
             Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
-            String side =nodeConfig.get(Node.side).toString();
+            if (nodeConfig == null || !nodeConfig.containsKey(Node.side)) {
+                log.info("未配置验签端点,无法完成验签!");
+                context.markFailure(ResultCode.VERIFY_ERROR.getCode(), "数据验签异常");
+                return false;
+            }
             //默认为市级端点
             String verifyPublicKey =requestParams.get("publicKey").toString();
             String decryptPrivateKey=org.getPrivateKey();
             //根据端点获取解密私钥和验签公钥
             //全国端点
-            if(side.equals("national")){
+            if(nodeConfig.get(Node.side).equals("national")){
                 SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
                 verifyPublicKey=mationalNodeConfig.getPublicKey();
                 decryptPrivateKey=self.getPrivateKey();
             }
+
+            // 判断是请求还是响应
+            boolean isRequest = requestParams.get("requestData") != null;
             // 5. 验证签名
-            String requestData = SignUtil.verifySignature(requestParams,verifyPublicKey,decryptPrivateKey);
-            if (StrUtil.isEmpty(requestData)) {
-                context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "签名验证失败");
+            String encryptData="";
+            if(!isRequest){
+                 encryptData= requestParams.get("data").toString();
+            }else{
+                 encryptData= requestParams.get("requestData").toString();
+            }
+            String originalData = SignUtil.verifySignature(requestParams,encryptData,verifyPublicKey,decryptPrivateKey);
+            if (StrUtil.isEmpty(originalData)) {
+                context.markFailure(ResultCode.VERIFY_ERROR.getCode(), "签名验证失败");
                 log.error("签名验证失败: appKey={}", appKey);
                 return false;
             }
             Map<String,Object> verifyResult=new HashMap<>();
             verifyResult.putAll(requestParams);
-            verifyResult.put("requestData",requestData);
+            verifyResult.put(isRequest?"requestData":"data",originalData);
 
             //将验签结果放入上下文
             context.setAttribute(Node.outParamName,verifyResult);
@@ -84,7 +98,7 @@ public class VerifyNode implements Node {
             return true;
         } catch (Exception e) {
             log.error("验签节点执行异常: {}", e.getMessage(), e);
-            context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "验签异常");
+            context.markFailure(ResultCode.VERIFY_ERROR.getCode(), "验签异常");
             return false;
         }
     }

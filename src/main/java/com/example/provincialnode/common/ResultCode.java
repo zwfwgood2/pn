@@ -25,7 +25,8 @@ public enum ResultCode {
     INVALID_TOKEN("2002", "无效的令牌"),
     EXPIRED_TOKEN("2003", "令牌已过期"),
     INVALID_APP_KEY("2004", "无效的AppKey"),
-    SIGNATURE_ERROR("2005", "签名验证失败"),
+    VERIFY_ERROR("2005", "验签失败"),
+    SIGNATURE_ERROR("2006", "签名失败"),
     
     // 参数错误
     PARAM_ERROR("3001", "参数错误"),

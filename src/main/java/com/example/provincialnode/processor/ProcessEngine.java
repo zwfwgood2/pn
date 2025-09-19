@@ -22,7 +22,7 @@ import java.util.concurrent.*;
 /**
  * 流程引擎类
  * 处理流程的执行、异步执行和重试逻辑
- * TODO:  回放只回放当前失败节点，也就是支持向前补偿
+ * TODO:  回放只回放当前失败节点，也就是支持向前补偿--这里回访逻辑需要修改不能每次回访都生成新的执行记录，这会导致重复执行
  *        优化执行流程模版，特别是上下文数据可否只存当前节点的输入和公共参数
  *        优化执行流程模版，执行记录sql合并，不要执行太多
  *        缓存写同步、公共配置初始化和定时更新逻辑检查
@@ -51,13 +51,12 @@ public class ProcessEngine {
 
     /**
      * 执行流程
-     * @param processCode 流程代码
+     * @param processCode 流程编码
      * @param context 处理上下文
      * @return 执行结果
      */
-    public Result<JSONObject> executeProcess(String processCode, ProcessContext context) {
+    public ProcessContext executeProcess(String processCode, ProcessContext context) {
         log.info("开始执行流程: {}, 请求ID: {}", processCode, context.getRequestId());
-
         // 创建流程执行记录
         SysProcessExecutionRecordEntity executionRecord = processExecutionRecordService.createExecutionRecord(
                 processCode,
@@ -65,7 +64,6 @@ public class ProcessEngine {
                 context.getAppKey(),
                 context.getRequestId()
         );
-
         // 记录执行记录ID到上下文
         context.setAttribute("executionId", executionRecord.getExecutionId());
 
@@ -76,13 +74,11 @@ public class ProcessEngine {
                     1, // 执行中
                     null
             );
-
             // 查询流程节点配置
             List<SysProcessNodeConfigEntity> nodeConfigs = processNodeConfigService.getEnabledNodesByProcessCode(processCode);
             if (nodeConfigs.isEmpty()) {
                 log.error("流程未配置节点: {}", processCode);
                 context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误: 流程未配置节点");
-                return Result.error(context.getErrorCode(), context.getErrorMessage());
             }
             // 按顺序执行节点
             for (SysProcessNodeConfigEntity nodeConfig : nodeConfigs) {
@@ -95,7 +91,6 @@ public class ProcessEngine {
                         1, // 执行中
                         nodeId
                 );
-
                 // 解析节点配置
                 Map<String, Object> nodeConfigMap = new HashMap<>();
                 if (nodeConfig.getNodeConfig() != null && !nodeConfig.getNodeConfig().isEmpty()) {
@@ -110,7 +105,7 @@ public class ProcessEngine {
                 context.setAttribute(Node.inParamName,nodeConfigMap.get(Node.inParamName)==null?Node.requestParams:nodeConfigMap.get(Node.inParamName));
                 context.setAttribute(Node.requestParams,context.getRequestParams());
                 context.setAttribute(Node.inParamType,nodeConfigMap.get(Node.inParamType));
-                context.setAttribute(Node.outParamName,nodeConfigMap.get(Node.outParamName));
+                context.setAttribute(Node.outParamName,nodeConfigMap.get(Node.outParamName)==null?Node.responseData:nodeConfigMap.get(Node.outParamName));
                 context.setAttribute(Node.outParamType,nodeConfigMap.get(Node.outParamType));
                 // 获取节点实现
                 Node node = nodeMap.get(nodeId);
@@ -119,7 +114,6 @@ public class ProcessEngine {
                     context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误: 未找到节点实现");
                     break;
                 }
-
                 // 执行节点
                 if (nodeConfig.getAsyncExecution()) {
                     // 异步执行
@@ -128,45 +122,33 @@ public class ProcessEngine {
                     // 同步执行
                     executeNodeSync(node, context, nodeConfig);
                 }
-
                 // 如果执行失败，结束流程
                 if (!context.isSuccess()) {
                     break;
                 }
             }
-
-            // 生成执行结果
-            Result<JSONObject> result;
             if (context.isSuccess()) {
                 Map<String, String> lastNodeConfigMap = JSON.parseObject(nodeConfigs.get(nodeConfigs.size() - 1).getNodeConfig(),Map.class);
-                result = Result.success(context.getAttribute(lastNodeConfigMap.get(Node.outParamName)));
-            } else {
-                result = Result.error(context.getErrorCode(), context.getErrorMessage());
+                context.setResponseData(context.getAttribute(lastNodeConfigMap.get(Node.outParamName)==null?Node.responseData:lastNodeConfigMap.get(Node.outParamName)));
             }
-
             // 完成流程执行
             processExecutionRecordService.completeExecution(
                     executionRecord.getExecutionId(),
                     context.isSuccess() ? 2 : 3, // 2:成功, 3:失败
                     context.isSuccess() ? null : context.getErrorMessage()
             );
-
             log.info("流程执行完成: {}, 请求ID: {}, 结果: {}", 
                     processCode, context.getRequestId(), context.isSuccess() ? "成功" : "失败");
-            return result;
-
+            return context;
         } catch (Exception e) {
             log.error("流程执行异常: {}", e.getMessage(), e);
             context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误");
-
             // 完成流程执行（失败）
             processExecutionRecordService.completeExecution(
                     executionRecord.getExecutionId(),
                     3, // 失败
                     "系统内部错误: " + e.getMessage()
             );
-
-            return Result.error(context.getErrorCode(), context.getErrorMessage());
         } finally {
             // 记录执行上下文，用于重放
             processExecutionRecordService.recordExecutionContext(
@@ -174,6 +156,7 @@ public class ProcessEngine {
                     context
             );
         }
+        return context;
     }
 
     /**
@@ -250,9 +233,9 @@ public class ProcessEngine {
      * @param executionId 执行ID
      * @return 执行结果
      */
-    public Result<JSONObject> replayProcess(String executionId) {
+    public ProcessContext replayProcess(String executionId) {
         log.info("开始重放流程执行: {}", executionId);
-
+        ProcessContext context=new ProcessContext();
         try {
             // 获取执行记录
             SysProcessExecutionRecordEntity executionRecord = processExecutionRecordService.getByExecutionId(executionId);
@@ -261,14 +244,15 @@ public class ProcessEngine {
             }
 
             // 恢复上下文
-            ProcessContext context = processExecutionRecordService.restoreContext(executionId);
+            context = processExecutionRecordService.restoreContext(executionId);
 
             // 执行流程
             return executeProcess(executionRecord.getProcessCode(), context);
         } catch (Exception e) {
             log.error("流程重放异常: {}", e.getMessage(), e);
-            return Result.error(ResultCode.SYSTEM_ERROR.getCode(), "流程重放异常: " + e.getMessage());
+            context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "流程重放异常: " + e.getMessage());
         }
+        return context;
     }
 
     /**
@@ -278,8 +262,8 @@ public class ProcessEngine {
      */
     private RetryConfig getRetryConfig(String retryConfigJson) {
         if (retryConfigJson == null || retryConfigJson.isEmpty()) {
-            // 默认重试配置
-            return new RetryConfig(3, 1000, 2.0);
+            // 默认重试配置=》不重试
+            return new RetryConfig(0, 1000, 2.0);
         }
 
         try {

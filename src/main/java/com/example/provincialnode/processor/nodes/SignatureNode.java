@@ -53,21 +53,39 @@ public class SignatureNode implements Node {
                 throw new BusinessException(ResultCode.NOT_FOUND.getCode(), "未找到对应的机构信息: " + appKey);
             }
 
+            //4. 从节点配置中获取签名端点
+            Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
+            if (nodeConfig == null || !nodeConfig.containsKey(Node.side)) {
+                log.info("未配置签名端点,无法完成签名!");
+                context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "数据签名异常");
+                return false;
+            }
             String signPrivateKey =org.getPrivateKey();
             String encryptPublicKey=requestParams.get("publicKey").toString();
-            //根据端点获取解密私钥和验签公钥
-            if(side.equals("national")){
+            //根据端点获取解密私钥和验签公钥,签名端是国家节点
+            if(nodeConfig.get(Node.side).equals("national")){
                 SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
                 signPrivateKey=self.getPrivateKey();
                 encryptPublicKey=mationalNodeConfig.getPublicKey();
             }
             // 5. 对数据进行签名
-            Map<String,String> signature = SignUtil.signData(requestParams.get("requestData").toString(), signPrivateKey,encryptPublicKey);
-            Map<String,Object> responseParams = new HashMap<>(6);
-            responseParams.putAll(requestParams);
-            responseParams.putAll(signature);
+            // 判断是请求还是响应
+            boolean isRequest = requestParams.get("requestData") != null;
+            String waitSignData="";
+            if(!isRequest){
+                waitSignData= requestParams.get("data").toString();
+            }else{
+                waitSignData= requestParams.get("requestData").toString();
+            }
+            Map<String,String> signature = SignUtil.signData(waitSignData,signPrivateKey,encryptPublicKey);
+            Map<String,Object> signResult = new HashMap<>(6);
+            signResult.putAll(requestParams);
+            signResult.putAll(signature);
+            signResult.put(isRequest?"requestData":"data",signature.get("encryptedData"));
+            signResult.remove("encryptedData");
+
             // 6. 将签名结果保存到上下文中
-            context.setAttribute(Node.outParamName,responseParams);
+            context.setAttribute(Node.outParamName,signResult);
             
             log.info("数据签名成功: {}", context.getRequestId());
             return true;
