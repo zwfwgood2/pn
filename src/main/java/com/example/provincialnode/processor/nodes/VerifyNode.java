@@ -23,14 +23,14 @@ import java.util.Map;
  *  } 此配置项用于指定签名节点的运行环境以便于选择不 同的公私钥，默认值为city（市级节点）。 
  */
 @Slf4j
-@Component("signatureVerifyNode")
-public class SignatureVerifyNode implements Node {
+@Component("verifyNode")
+public class VerifyNode implements Node {
 
     @Autowired
     private SysAccessOrganizationService sysAccessOrganizationService;
     @Autowired
     private NationalNodeConfig mationalNodeConfig;
-    private static final String NODE_ID = "signatureVerifyNode";
+    private static final String NODE_ID = "verifyNodesta";
     private static final String NODE_NAME = "验签节点";
 
     @Override

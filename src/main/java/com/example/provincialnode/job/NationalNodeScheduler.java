@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * 全国节点定时任务类
  * 负责定时执行全国节点相关的任务，如刷新token和更新公钥
  */
-@Component
+//@Component
 public class NationalNodeScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(NationalNodeScheduler.class);

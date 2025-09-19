@@ -14,9 +14,9 @@ spring:
   application:
     name: provincial-node-service
   datasource:
-    url: jdbc:mysql://localhost:3306/provincial_node?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://192.168.4.212:3306/provincial_node?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
-    password: password
+    password: RE#xy=S&Z9
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -27,10 +27,10 @@ spring:
   
   # Redis配置
   redis:
-    host: localhost
+    host: 192.168.4.151
     port: 6379
-    password: 
-    database: 0
+    password: 123456
+    database: 9
     timeout: 3000
     lettuce:
       pool:
@@ -43,13 +43,10 @@ spring:
 xxl:
   job:
     admin:
-      addresses: http://localhost:8080/xxl-job-admin
-    accessToken: 
+      addresses: http://192.168.4.151:9004/xxl-job-admin
+    accessToken: default_token
     executor:
       appname: provincial-node-job
-      address: 
-      ip: 
-      port: 9999
       logpath: logs/xxl-job/
       logretentiondays: 30
 # 日志配置
@@ -71,10 +68,6 @@ provincial:
     national-node-url: http://national-node.example.com/api
     connect-timeout: 5000
     read-timeout: 10000
-    # 签名配置
-    signature:
-      algorithm: SHA256withRSA
-    
     # 令牌配置
     token:
       # 令牌有效期(秒)
