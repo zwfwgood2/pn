@@ -19,8 +19,19 @@ import java.util.Map;
  * 支持配置化规则，使用可扩展的校验器进行参数校验
  * node_config字段配置示例：
  * {
-*   "convertRules": "{\"orgCode\":\"organizationCode\",\"userName\":\"username\",\"addressInfo\":{\"city\":\"cityName\"}}"
-    }
+  "validateRules": "[{
+    "paramName": "orgCode",
+    "rules": [
+      {"type": "required", "config": {"message": "机构代码不能为空"}},
+      {"type": "stringLength", "config": {"min": 4, "max": 20, "message": "机构代码长度必须在4-20位之间"}}
+    ]
+  },{
+    "paramName": "userName",
+    "rules": [
+      {"type": "required", "config": {"message": "用户名不能为空"}}
+    ]
+  }]"
+}
  */
 @Slf4j
 @Component("paramValidateNode")

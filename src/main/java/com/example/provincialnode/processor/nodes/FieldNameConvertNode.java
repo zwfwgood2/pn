@@ -16,6 +16,10 @@ import java.util.Map;
  * 字段名称转换节点
  * 将输入数据中的字段名称根据配置规则转换为目标字段名称
  * 支持普通对象、数组和嵌套对象的字段转换
+ * node_config字段配置示例：
+ * {
+ *   "convertRules": "{\"orgCode\":\"organizationCode\",\"userName\":\"username\",\"addressInfo\":{\"city\":\"cityName\"}}"
+ * }
  */
 @Slf4j
 @Component("fieldNameConvertNode")

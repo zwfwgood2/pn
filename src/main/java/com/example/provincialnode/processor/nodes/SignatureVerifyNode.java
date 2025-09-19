@@ -18,6 +18,9 @@ import java.util.Map;
 /**
  * 验签节点
  * 负责验证请求数据的签名是否有效
+ * {    
+ *   "side": "national" // 可选值：national（全国节点）、provincial（省级节点）、city（市级节点）
+ *  } 此配置项用于指定签名节点的运行环境以便于选择不 同的公私钥，默认值为city（市级节点）。 
  */
 @Slf4j
 @Component("signatureVerifyNode")
