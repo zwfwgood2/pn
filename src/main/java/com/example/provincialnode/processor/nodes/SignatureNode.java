@@ -53,16 +53,16 @@ public class SignatureNode implements Node {
                 throw new BusinessException(ResultCode.NOT_FOUND.getCode(), "未找到对应的机构信息: " + appKey);
             }
 
-            String verifyPrivateKey =org.getPrivateKey();
+            String signPrivateKey =org.getPrivateKey();
             String encryptPublicKey=requestParams.get("publicKey").toString();
             //根据端点获取解密私钥和验签公钥
             if(side.equals("national")){
                 SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
-                verifyPrivateKey=self.getPrivateKey();
+                signPrivateKey=self.getPrivateKey();
                 encryptPublicKey=mationalNodeConfig.getPublicKey();
             }
             // 5. 对数据进行签名
-            Map<String,String> signature = SignUtil.signData(requestParams.get("requestData").toString(), encryptPublicKey,verifyPrivateKey);
+            Map<String,String> signature = SignUtil.signData(requestParams.get("requestData").toString(), signPrivateKey,encryptPublicKey);
             Map<String,Object> responseParams = new HashMap<>(6);
             responseParams.putAll(requestParams);
             responseParams.putAll(signature);

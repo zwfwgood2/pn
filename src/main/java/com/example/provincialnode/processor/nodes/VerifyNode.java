@@ -30,7 +30,7 @@ public class VerifyNode implements Node {
     private SysAccessOrganizationService sysAccessOrganizationService;
     @Autowired
     private NationalNodeConfig mationalNodeConfig;
-    private static final String NODE_ID = "verifyNodesta";
+    private static final String NODE_ID = "verifyNode";
     private static final String NODE_NAME = "验签节点";
 
     @Override
