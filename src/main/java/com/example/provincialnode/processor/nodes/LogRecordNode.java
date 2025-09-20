@@ -45,7 +45,7 @@ public class LogRecordNode implements Node {
             sysRequestLogService.save(requestLog);
             
             // 3. 将日志ID保存到上下文中，方便后续更新
-            context.setAttribute(Node.outParamName, requestLog.getId());
+            context.setAttributeByParamName(Node.outParamName, requestLog.getId());
             
             log.info("请求日志记录成功: {}", requestLog.getRequestId());
             return true;

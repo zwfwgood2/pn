@@ -49,7 +49,7 @@ public class ParamValidateNode implements Node {
         
         try {
             //从节点配置中获取参数校验规则
-            Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
+            Map<String, Object> nodeConfig = context.getAttribute(Node.nodeConfig);
             if (nodeConfig == null || !nodeConfig.containsKey("validateRules")) {
                 log.info("未配置参数校验规则，跳过参数校验");
                 return true;
@@ -60,7 +60,7 @@ public class ParamValidateNode implements Node {
             JSONArray validateRules = JSON.parseArray(validateRulesJson);
             
             // 获取请求参数
-            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
+            Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
             // 执行参数校验
             for (int i = 0; i < validateRules.size(); i++) {
                 JSONObject rule = validateRules.getJSONObject(i);

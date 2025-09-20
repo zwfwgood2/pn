@@ -19,6 +19,7 @@ public class ProcessContext {
     // 接口代码
     private String interfaceCode;
 
+    private String interfacePath;
     // AppKey
     private String appKey;
 
@@ -58,6 +59,39 @@ public class ProcessContext {
     @SuppressWarnings("unchecked")
     public <T> T getAttribute(String key) {
         return (T) attributes.get(key);
+    }
+
+    /**
+     * 获取属性
+     * @param paramName 参数名称，作为属性键
+     * @param <T> 属性类型
+     * @return 属性值
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getAttributeByParamName(String paramName) {
+        //获取参数名称
+        String key = getAttribute(paramName);
+        return (T) attributes.get(key);
+    }
+
+    /**
+     * 设置属性
+     * @param paramName 参数名称，作为属性键
+     */
+    public void setAttributeByParamName(String paramName,Object value) {
+        //获取参数名称
+        String key = getAttribute(paramName);
+        attributes.put(key,value);
+    }
+
+    /**
+     * 删除属性
+     * @param paramName 参数名称，作为属性键
+     */
+    public void removeAttributeByParamName(String paramName) {
+        //获取参数名称
+        String key = getAttribute(paramName);
+        attributes.remove(key);
     }
 
     /**

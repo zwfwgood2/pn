@@ -70,6 +70,7 @@ public class SysProcessExecutionRecordService extends ServiceImpl<SysProcessExec
         record.setStatus(0); // 初始状态
         record.setRetryCount(0);
         record.setMaxRetryCount(3);
+        record.setStartTime(new Date());
         save(record);
         return record;
     }

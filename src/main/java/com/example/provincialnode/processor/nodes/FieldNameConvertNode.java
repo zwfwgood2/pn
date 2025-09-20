@@ -34,7 +34,7 @@ public class FieldNameConvertNode implements Node {
         
         try {
             //从节点配置中获取转换规则
-            Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
+            Map<String, Object> nodeConfig = context.getAttribute(Node.nodeConfig);
             if (nodeConfig == null || !nodeConfig.containsKey("convertRules")) {
                 log.info("未配置字段转换规则，跳过字段转换");
                 return true;
@@ -45,7 +45,7 @@ public class FieldNameConvertNode implements Node {
             JSONObject convertRules = JSON.parseObject(convertRulesJson);
             
             // 获取要转换的数据
-            Object sourceData = context.getAttribute(Node.inParamName);
+            Object sourceData = context.getAttributeByParamName(Node.inParamName);
             if (sourceData == null) {
                 log.info("数据源 {} 中没有数据，跳过字段转换", sourceData);
                 return true;
@@ -54,7 +54,7 @@ public class FieldNameConvertNode implements Node {
             Object convertedData = convertFields(sourceData, convertRules);
             
             // 将转换后的数据放回指定的目标位置
-            context.setAttribute(Node.outParamName, convertedData);
+            context.setAttributeByParamName(Node.outParamName, convertedData);
             log.info("字段名称转换完成: {}", context.getRequestId());
             return true;
         } catch (Exception e) {

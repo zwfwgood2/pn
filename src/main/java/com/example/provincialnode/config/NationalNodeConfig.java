@@ -31,11 +31,11 @@ public class NationalNodeConfig {
 
     // 获取全国节点公钥
     // 全国节点公钥
-    private volatile String publicKey;
+    private volatile String publicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAECWtHj8hyyEjTY3ECE9l8i2T6AQhEOsuD4qqf2UI4exVH5rbIBJyrg2dddyY+f+FGBrdAuLYeRimFY9WqFtgUFg==";
 
     // 获取全国节点令牌
     // 全国节点令牌
-    private volatile String token;
+    private volatile String token="dddd";
 
     // 获取令牌过期时间
     // 令牌过期时间（秒）

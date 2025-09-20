@@ -1,5 +1,6 @@
 package com.example.provincialnode.processor;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.example.provincialnode.common.Result;
@@ -26,6 +27,8 @@ import java.util.concurrent.*;
  *        优化执行流程模版，特别是上下文数据可否只存当前节点的输入和公共参数
  *        优化执行流程模版，执行记录sql合并，不要执行太多
  *        缓存写同步、公共配置初始化和定时更新逻辑检查
+ *        定时token刷新容错处理
+ *        定时恢复流程token失效问题
  */
 @Slf4j
 @Component
@@ -100,12 +103,12 @@ public class ProcessEngine {
                         log.error("解析节点配置失败: {}", e.getMessage());
                     }
                 }
-                context.setAttribute("nodeConfig", nodeConfigMap);
+                context.setAttribute(Node.nodeConfig, nodeConfigMap);
                 //设置输入、输出参数名称和类型
-                context.setAttribute(Node.inParamName,nodeConfigMap.get(Node.inParamName)==null?Node.requestParams:nodeConfigMap.get(Node.inParamName));
+                context.setAttribute(Node.inParamName, isConfig(nodeConfigMap,Node.inParamName)?nodeConfigMap.get(Node.inParamName):Node.requestParams);
                 context.setAttribute(Node.requestParams,context.getRequestParams());
                 context.setAttribute(Node.inParamType,nodeConfigMap.get(Node.inParamType));
-                context.setAttribute(Node.outParamName,nodeConfigMap.get(Node.outParamName)==null?Node.responseData:nodeConfigMap.get(Node.outParamName));
+                context.setAttribute(Node.outParamName,isConfig(nodeConfigMap,Node.outParamName)?nodeConfigMap.get(Node.outParamName):Node.responseData);
                 context.setAttribute(Node.outParamType,nodeConfigMap.get(Node.outParamType));
                 // 获取节点实现
                 Node node = nodeMap.get(nodeId);
@@ -128,8 +131,8 @@ public class ProcessEngine {
                 }
             }
             if (context.isSuccess()) {
-                Map<String, String> lastNodeConfigMap = JSON.parseObject(nodeConfigs.get(nodeConfigs.size() - 1).getNodeConfig(),Map.class);
-                context.setResponseData(context.getAttribute(lastNodeConfigMap.get(Node.outParamName)==null?Node.responseData:lastNodeConfigMap.get(Node.outParamName)));
+                Map<String, Object> lastNodeConfigMap = JSON.parseObject(nodeConfigs.get(nodeConfigs.size() - 1).getNodeConfig(),Map.class);
+                context.setResponseData(context.getAttribute(isConfig(lastNodeConfigMap,Node.outParamName)?lastNodeConfigMap.get(Node.outParamName).toString():Node.responseData));
             }
             // 完成流程执行
             processExecutionRecordService.completeExecution(
@@ -137,7 +140,7 @@ public class ProcessEngine {
                     context.isSuccess() ? 2 : 3, // 2:成功, 3:失败
                     context.isSuccess() ? null : context.getErrorMessage()
             );
-            log.info("流程执行完成: {}, 请求ID: {}, 结果: {}", 
+            log.info("流程执行完成: {}, 请求ID: {}, 结果: {}",
                     processCode, context.getRequestId(), context.isSuccess() ? "成功" : "失败");
             return context;
         } catch (Exception e) {
@@ -157,6 +160,10 @@ public class ProcessEngine {
             );
         }
         return context;
+    }
+
+    public static boolean isConfig(Map<String, Object> nodeConfigMap,String paramName) {
+        return nodeConfigMap.get(paramName) != null && StrUtil.isNotBlank(nodeConfigMap.get(paramName).toString());
     }
 
     /**
@@ -196,7 +203,7 @@ public class ProcessEngine {
         }
 
         // 处理节点执行结果
-        if (!success && !context.isSuccess()) {
+        if (!success && StrUtil.isBlank(context.getErrorMessage())) {
             // 节点执行失败且没有设置错误信息
             context.markFailure(ResultCode.SYSTEM_ERROR.getCode(), "节点执行失败: " + node.getNodeName());
         }

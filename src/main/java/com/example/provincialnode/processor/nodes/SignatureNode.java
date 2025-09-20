@@ -6,6 +6,7 @@ import com.example.provincialnode.config.NationalNodeConfig;
 import com.example.provincialnode.entity.SysAccessOrganizationEntity;
 import com.example.provincialnode.exception.BusinessException;
 import com.example.provincialnode.processor.Node;
+import com.example.provincialnode.processor.ProcessEngine;
 import com.example.provincialnode.processor.context.ProcessContext;
 import com.example.provincialnode.service.SysAccessOrganizationService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.Map;
  * node_config字段配置示例：
  * {    
  *   "side": "national" // 可选值：national（全国节点）、provincial（省级节点）、city（市级节点）
+ *   "dataSource":"requestData" // 待签名数据参数名称;必填，可选值：requestData（请求数据源）、data（响应数据源）
  * } 此配置项用于指定签名节点的运行环境以便于选择不 同的公私钥，默认值为city（市级节点）。  
  */
 @Slf4j
@@ -34,59 +36,64 @@ public class SignatureNode implements Node {
     private static final String NODE_ID = "signatureNode";
     private static final String NODE_NAME = "签名节点";
 
+    private static final String dataSource = "dataSource";
+
     @Override
     public boolean execute(ProcessContext context) {
         log.info("执行签名节点: {}", context.getRequestId());
         
         try {
-            // 1. 获取AppKey
-            String appKey = context.getAppKey();
-            // 2. 获取待签名数据（从上下文中获取）
-            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
+            // 获取AppKey
+            String appKey = context.getAttribute("appKey").toString();
+            // 获取待签名数据（从上下文中获取）
+            Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
             if (requestParams == null || requestParams.isEmpty()) {
                 context.markFailure(ResultCode.DATA_NOT_FOUND.getCode(), "待签名数据为空");
                 return false;
             }
-            // 3. 获取机构信息
-            SysAccessOrganizationEntity org = sysAccessOrganizationService.selectByAppKey(appKey);
-            if (org == null) {
-                throw new BusinessException(ResultCode.NOT_FOUND.getCode(), "未找到对应的机构信息: " + appKey);
-            }
-
-            //4. 从节点配置中获取签名端点
-            Map<String, Object> nodeConfig = context.getAttribute("nodeConfig");
-            if (nodeConfig == null || !nodeConfig.containsKey(Node.side)) {
+            //从节点配置中获取签名端点
+            Map<String, Object> nodeConfig = context.getAttribute(Node.nodeConfig);
+            if (nodeConfig == null || !nodeConfig.containsKey(side)) {
                 log.info("未配置签名端点,无法完成签名!");
                 context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "数据签名异常");
                 return false;
             }
-            String signPrivateKey =org.getPrivateKey();
-            String encryptPublicKey=requestParams.get("publicKey").toString();
-            //根据端点获取解密私钥和验签公钥,签名端是国家节点
-            if(nodeConfig.get(Node.side).equals("national")){
+
+            //根据端点获取解密私钥和验签公钥
+            String encryptPublicKey=null,signPrivateKey=null,waitSignData=null,paramKey = null;
+            if(nodeConfig.get(side).equals("city")){
+                //获取机构信息
+                SysAccessOrganizationEntity org = sysAccessOrganizationService.selectByAppKey(appKey);
+                if (org == null) {
+                    throw new BusinessException(ResultCode.NOT_FOUND.getCode(), "未找到对应的机构信息: " + appKey);
+                }
+                 signPrivateKey =org.getPrivateKey();
+                 encryptPublicKey=context.getRequestParams().get("publicKey").toString();
+            }
+            if(nodeConfig.get(side).equals("national")){
                 SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
                 signPrivateKey=self.getPrivateKey();
                 encryptPublicKey=mationalNodeConfig.getPublicKey();
             }
-            // 5. 对数据进行签名
-            // 判断是请求还是响应
-            boolean isRequest = requestParams.get("requestData") != null;
-            String waitSignData="";
-            if(!isRequest){
-                waitSignData= requestParams.get("data").toString();
-            }else{
-                waitSignData= requestParams.get("requestData").toString();
+
+            //获取待签名数据
+            if(!ProcessEngine.isConfig(nodeConfig,dataSource)){
+                log.info("未配置签名数据源,无法完成签名!");
+                context.markFailure(ResultCode.SIGNATURE_ERROR.getCode(), "数据签名异常");
+                return false;
             }
-            Map<String,String> signature = SignUtil.signData(waitSignData,signPrivateKey,encryptPublicKey);
+            paramKey=nodeConfig.get(dataSource).toString();
+            waitSignData=requestParams.get(paramKey).toString();
+
+            // 5. 对数据进行签名
+            Map<String,Object> signature = SignUtil.signData(waitSignData,signPrivateKey,encryptPublicKey);
             Map<String,Object> signResult = new HashMap<>(6);
             signResult.putAll(requestParams);
             signResult.putAll(signature);
-            signResult.put(isRequest?"requestData":"data",signature.get("encryptedData"));
+            signResult.put(paramKey,signature.get("encryptedData"));
             signResult.remove("encryptedData");
-
             // 6. 将签名结果保存到上下文中
-            context.setAttribute(Node.outParamName,signResult);
-            
+            context.setAttributeByParamName(Node.outParamName,signResult);
             log.info("数据签名成功: {}", context.getRequestId());
             return true;
         } catch (Exception e) {

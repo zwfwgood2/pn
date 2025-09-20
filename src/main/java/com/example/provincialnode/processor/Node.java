@@ -20,10 +20,11 @@ public interface Node {
     String inParamType="inParamType";
     String outParamType="outParamType";
 
-    String side="side";
+    String side = "side";
+
     String requestParams="requestParams";
     String responseData="responseData";
-    String NodeConfig="NodeConfig";
+    String nodeConfig="nodeConfig";
     /**
      * 节点执行方法
      * @param context 处理上下文

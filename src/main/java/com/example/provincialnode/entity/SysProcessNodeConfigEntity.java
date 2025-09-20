@@ -1,8 +1,6 @@
 package com.example.provincialnode.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.util.Date;
@@ -33,8 +31,8 @@ public class SysProcessNodeConfigEntity {
     private String nodeConfig; // 节点配置参数，JSON格式
 
     private Integer status; // 0:禁用, 1:启用
-
+    @TableField(fill = FieldFill.INSERT)
     private Date createTime;
-
+    @TableField(fill = FieldFill.UPDATE)
     private Date updateTime;
 }

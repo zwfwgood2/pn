@@ -33,7 +33,7 @@ public class AuthorizationLetterValidateNode implements Node {
 
         try {
             // 1. 获取请求参数中的授权标识符
-            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
+            Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
             String authIdentifier = (String) requestParams.get("authIdentifier");
 
             // 2. 校验授权标识符是否存在
@@ -54,7 +54,7 @@ public class AuthorizationLetterValidateNode implements Node {
             }
 
             // 5. 校验通过，将授权信息存入上下文
-           context.setAttribute(Node.outParamName,isValid);
+           context.setAttributeByParamName(Node.outParamName,isValid);
 
             log.info("授权书校验通过，授权标识符: {}, 请求ID: {}", context.getRequestId());
             return true;

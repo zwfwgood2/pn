@@ -22,13 +22,28 @@ public class Result implements Serializable {
     private Map<String,Object> result = new LinkedHashMap<>(5);
 
     /**
-     * 成功返回  --适用于国家节点异常，原封不动返回
+     * 成功返回
      * @param data 数据
      * @return 响应结果
      */
     public static Result success(Map<String,Object> data) {
         Result result = new Result();
-        result.setResult(data);
+        Map<String,Object> cityNodeResponse = new LinkedHashMap<>(4);
+        cityNodeResponse.put("C-API-Status", (boolean) data.get("success") ? "00":"01");
+        cityNodeResponse.put("C-Response-Code",data.get("errorCode"));
+        cityNodeResponse.put("C-Response-Desc",data.get("errorMessage"));
+        Map<String,Object> body =null ;
+        if((boolean) data.get("success")){
+            body = new LinkedHashMap<>(7);
+            body.put("txnCommCom",null);
+            body.put("fileCom",null);
+            body.put("timestamp",data.get("timestamp"));
+            body.put("key",data.get("key"));
+            body.put("signatureData",data.get("signatureData"));
+            body.put("data",data.get("data"));
+        }
+        cityNodeResponse.put("C-Response-Body",body);
+        result.setResult(cityNodeResponse);
         return result;
     }
 

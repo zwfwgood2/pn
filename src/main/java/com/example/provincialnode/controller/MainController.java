@@ -3,9 +3,12 @@ package com.example.provincialnode.controller;
 import com.alibaba.fastjson.JSON;
 import com.example.provincialnode.common.Result;
 import com.example.provincialnode.common.ResultCode;
+import com.example.provincialnode.entity.SysAccessOrganizationEntity;
 import com.example.provincialnode.entity.SysInterfaceDefinitionEntity;
+import com.example.provincialnode.exception.BusinessException;
 import com.example.provincialnode.processor.ProcessEngine;
 import com.example.provincialnode.processor.context.ProcessContext;
+import com.example.provincialnode.service.SysAccessOrganizationService;
 import com.example.provincialnode.service.SysInterfaceDefinitionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,20 +31,25 @@ public class MainController {
     private SysInterfaceDefinitionService sysInterfaceDefinitionService;
 
     @Autowired
+    private SysAccessOrganizationService sysAccessOrganizationService;
+
+    @Autowired
     private ProcessEngine processEngine;
     /**
      * 处理所有接口请求
      * 通配符路径，根据URL后缀识别接口
      */
-    @RequestMapping(value = "{interfacePath}", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
-    public Map<String,Object> handleRequest(@PathVariable String interfacePath,@RequestBody(required = false) Map<String, Object> requestBody,HttpServletRequest request) {
+    @RequestMapping(value = "**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public Map<String,Object> handleRequest(@RequestBody(required = false) Map<String, Object> requestBody,HttpServletRequest request) {
+        //获取请求路径不包含上下文
+        String interfacePath=getInterfacePathWithoutContext(request);
         log.info("收到请求: URL={}", interfacePath);
         ProcessContext context=new ProcessContext();
         try {
             // 根据请求路径查询接口定义
             SysInterfaceDefinitionEntity interfaceDefinition = sysInterfaceDefinitionService.findByRequestPath(interfacePath);
             if(interfaceDefinition == null){
-               Result.error(ResultCode.NOT_FOUND.getCode(), "接口定义不存在").getResult();
+               return  Result.error(ResultCode.NOT_FOUND.getCode(), "接口定义不存在").getResult();
             }
 
             //  检查接口是否启用
@@ -49,6 +57,9 @@ public class MainController {
                 log.error("接口未启用: {}", interfacePath);
                 return Result.error(ResultCode.SERVICE_UNAVAILABLE.getCode(), "接口未启用").getResult();
             }
+
+            //校验入参规则是否符合市级规范
+            validateRequestBody(requestBody);
             
             // 获取接口编码
             String interfaceCode = interfaceDefinition.getInterfaceCode();
@@ -70,7 +81,10 @@ public class MainController {
         } catch (Exception e) {
             String errorMsg = "处理请求异常: " + e.getMessage();
             log.error(errorMsg, e);
-            return Result.error(context.getErrorCode(),context.getErrorMessage()).getResult();
+            if(e instanceof BusinessException){
+              return Result.error(ResultCode.SYSTEM_ERROR.getCode(),e.getMessage()).getResult();
+            }
+            return Result.error(ResultCode.SYSTEM_ERROR).getResult();
         }
     }
 
@@ -92,6 +106,29 @@ public class MainController {
             log.error("流程重放异常: {}", e.getMessage(), e);
             return Result.error(context.getErrorCode(), context.getErrorMessage()).getResult();
         }
+    }
+
+    private void validateRequestBody(Map<String, Object> requestBody) {
+        if (requestBody == null) {
+            throw new BusinessException("请求参数不能为空");
+        }
+        if (!requestBody.containsKey("txnCommCom") || !requestBody.containsKey("txnBodyCom")) {
+            throw new BusinessException("请求参数缺少必要字段");
+        }
+    }
+
+
+    private String getInterfacePathWithoutContext(HttpServletRequest request) {
+
+        // 1. 获取完整请求URI（包含上下文路径）
+        String requestUri = request.getRequestURI(); // 例如：/myapp/user/123/detail
+
+        // 2. 获取上下文路径（例如：/myapp）
+        String contextPath = request.getContextPath(); // 若为根路径，返回""
+
+        // 3. 从完整URI中去除上下文路径，得到目标路径
+
+        return requestUri.substring(contextPath.length());
     }
 
     /**
@@ -116,8 +153,9 @@ public class MainController {
         requestParams.putAll(JSON.parseObject(txnBodyComJSON, Map.class));
         requestParams.putAll(JSON.parseObject(txnCommComJSON, Map.class));
         context.setRequestParams(requestParams);
-
         // 4. 添加其他必要信息
+        SysAccessOrganizationEntity self = sysAccessOrganizationService.selectByAppKey("self");
+        context.setAttribute("selfPublicKey", self.getPublicKey());
         context.setAttribute("requestIp", getClientIp(request));
         return context;
     }

@@ -1,8 +1,6 @@
 package com.example.provincialnode.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.util.Date;
@@ -42,7 +40,7 @@ public class SysProcessExecutionRecordEntity {
     private String currentNodeId;
 
     private String executionContext; // 执行上下文，JSON格式，用于重放
-
+    @TableField(fill = FieldFill.UPDATE)
     private Date updateTime;
 
 }

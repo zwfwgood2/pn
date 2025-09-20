@@ -31,27 +31,30 @@ public class NationalNodeRequestNode implements Node {
 
     @Autowired
     private NationalNodeConfig nationalNodeConfig;
-
     private static final String NODE_ID = "nationalNodeRequestNode";
     private static final String NODE_NAME = "全国节点请求节点";
+
 
     @Override
     public boolean execute(ProcessContext context) {
         log.info("执行全国节点请求节点: {}", context.getRequestId());
         try {
             // 1. 获取请求参数和接口信息
-            String interfaceCode = context.getInterfaceCode();
-            Map<String, Object> requestParams = context.getAttribute(Node.inParamName);
+            String interfacePath = context.getInterfacePath();
+            Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
             
             // 2. 构建全国节点请求URL
-            String requestUrl = nationalNodeConfig.getNationalNodeUrl() + "/" + interfaceCode;
+            String requestUrl = nationalNodeConfig.getNationalNodeUrl() + "/" + interfacePath;
 
             // 3. 构建请求参数
             JSONObject requestBody = new JSONObject();
+            requestBody.putAll(requestParams);
             //移除全国节点不需要的字段
             requestBody.remove("txnIttChnlId");
             requestBody.remove("txnIttChnlCgyCode");
-            requestBody.putAll(requestParams);
+            //替换省级节点publicKey和国家节点token
+            requestBody.put("publicKey",context.getAttribute("selfPublicKey").toString());
+            requestBody.put("token", nationalNodeConfig.getToken());
 
             // 4. 发送请求到全国节点
             String response = sendRequest(requestUrl, requestBody.toJSONString());
@@ -64,17 +67,17 @@ public class NationalNodeRequestNode implements Node {
             }
             //6. 转换为市级接口需要的格式
             Map<String,Object> nationalNodeResponse = JSON.parseObject(response, Map.class);
-            if((boolean)nationalNodeResponse.get("success")==false){
+            if(!((boolean) nationalNodeResponse.get("success"))){
                 context.markFailure(nationalNodeResponse.get("C-Response-Code").toString(), nationalNodeResponse.get("C-Response-Desc").toString());
                 log.error("全国节点返回异常，结果: {}", nationalNodeResponse);
                 return false;
             }
             Map<String,Object> cityNodeResponse = new LinkedHashMap<>(4);
-            cityNodeResponse.put("C-API-Status",(boolean)nationalNodeResponse.get("success")==true? "00":"01");
+            cityNodeResponse.put("C-API-Status", (boolean) nationalNodeResponse.get("success") ? "00":"01");
             cityNodeResponse.put("C-Response-Code",nationalNodeResponse.get("C-Response-Code"));
             cityNodeResponse.put("C-Response-Desc",nationalNodeResponse.get("C-Response-Desc"));
             Map<String,Object> body =null ;
-            if((boolean)nationalNodeResponse.get("success")==true){
+            if((boolean) nationalNodeResponse.get("success")){
                 body = new LinkedHashMap<>(7);
                 body.put("txnCommCom",null);
                 body.put("fileCom",null);
@@ -85,7 +88,7 @@ public class NationalNodeRequestNode implements Node {
             }
             cityNodeResponse.put("C-Response-Body",body);
             // 7. 将全国节点返回结果保存到上下文中
-            context.setAttribute(Node.outParamName, cityNodeResponse);
+            context.setAttributeByParamName(Node.outParamName, cityNodeResponse);
             log.info("全国节点请求成功: {}, 响应: {}", requestUrl, response);
             return true;
         } catch (Exception e) {
