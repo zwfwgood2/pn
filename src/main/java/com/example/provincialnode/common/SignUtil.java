@@ -6,6 +6,7 @@ import cn.hutool.crypto.symmetric.SM4;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +34,7 @@ public class SignUtil {
         // 2. 使用decryptPrivateKey解密key得到SM4的秘钥
         SM2 sm2Decrypt = new SM2(decryptPrivateKey, null);
         byte[] decryptedKeyBytes = sm2Decrypt.decrypt(Base64.decode(encryptedKey));
-        String sm4Key = new String(decryptedKeyBytes, "UTF-8");
+        String sm4Key = new String(decryptedKeyBytes, StandardCharsets.UTF_8);
 
         // 3. 使用SM4秘钥解密requestData得到原文
         SM4 sm4 = new SM4(
@@ -42,11 +43,11 @@ public class SignUtil {
                 sm4Key.getBytes()
         );
         byte[] decryptedDataBytes = sm4.decrypt(Base64.decode(encryptedData));
-        String originalData = new String(decryptedDataBytes, "UTF-8");
+        String originalData = new String(decryptedDataBytes, StandardCharsets.UTF_8);
 
         // 4. 使用SM2WithSM3算法和verifyPublicKey对原文进行验签
         SM2 sm2Sign = new SM2(null, verifyPublicKey);
-        boolean verify = sm2Sign.verify(originalData.getBytes("UTF-8"),Base64.decode(signatureData));
+        boolean verify = sm2Sign.verify(originalData.getBytes(StandardCharsets.UTF_8),Base64.decode(signatureData));
         // 5. 验证签名是否匹配
         if (!verify) {
             // 签名不匹配，返回null表示验证失败

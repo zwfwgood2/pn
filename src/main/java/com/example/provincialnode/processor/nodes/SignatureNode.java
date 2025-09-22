@@ -44,7 +44,7 @@ public class SignatureNode implements Node {
         
         try {
             // 获取AppKey
-            String appKey = context.getAttribute("appKey").toString();
+            String appKey = context.getAppKey();
             // 获取待签名数据（从上下文中获取）
             Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
             if (requestParams == null || requestParams.isEmpty()) {

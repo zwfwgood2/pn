@@ -51,7 +51,8 @@ public class TokenValidateNode implements Node {
                 return false;
             }
             //TODO 从token中取出appKey并放入上下文
-            context.setAttribute("appKey", "city_node_001_key");
+            context.setAppKey("city_node_001_key");
+           // context.setAttribute("appKey", "city_node_001_key");
             log.info("Token验证通过: {}", context.getRequestId());
             return true;
         } catch (Exception e) {

@@ -1,6 +1,5 @@
 package com.example.provincialnode.processor.context;
 
-import com.example.provincialnode.common.Result;
 import lombok.Data;
 
 import java.util.HashMap;

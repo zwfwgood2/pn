@@ -41,7 +41,7 @@ public class VerifyNode implements Node {
         try {
             //获取请求参数和AppKey
             Map<String, Object> requestParams = context.getAttributeByParamName(Node.inParamName);
-            String appKey = context.getAttribute("appKey").toString();
+            String appKey = context.getAppKey();
             //从请求参数中获取签名
             String signature = (String) requestParams.get("signatureData");
             if (signature == null || signature.isEmpty()) {
