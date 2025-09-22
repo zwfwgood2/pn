@@ -52,7 +52,7 @@ public class NationalNodeRequestNode implements Node {
             //移除全国节点不需要的字段
             requestBody.remove("txnIttChnlId");
             requestBody.remove("txnIttChnlCgyCode");
-            //替换省级节点publicKey和国家节点token
+            //替换为省级节点publicKey和国家节点token
             requestBody.put("publicKey",context.getAttribute("selfPublicKey").toString());
             requestBody.put("token", nationalNodeConfig.getToken());
 

@@ -65,7 +65,7 @@ public class MainController {
             String interfaceCode = interfaceDefinition.getInterfaceCode();
             
             // 构建处理上下文
-            context = buildProcessContext(requestBody, interfaceCode,request);
+            context = buildProcessContext(requestBody, interfaceDefinition,request);
             
             // 按照接口维度加载流程执行
             // 检查接口是否配置了特定流程
@@ -134,7 +134,7 @@ public class MainController {
     /**
      * 构建处理上下文
      */
-    private ProcessContext buildProcessContext(Map<String, Object> requestBody, String interfaceCode,HttpServletRequest request) {
+    private ProcessContext buildProcessContext(Map<String, Object> requestBody, SysInterfaceDefinitionEntity definition,HttpServletRequest request) {
         ProcessContext context = new ProcessContext();
         
         // 1. 设置请求ID
@@ -142,7 +142,8 @@ public class MainController {
         context.setRequestId(requestId);
         
         // 2. 设置接口代码
-        context.setInterfaceCode(interfaceCode);
+        context.setInterfaceCode(definition.getInterfaceCode());
+        context.setInterfacePath(definition.getRequestPath());
 
         //3.处理结构体将txnCommCom、txnBodyCom 放入一个map 作为请求参数,方便流程使用
         Object txnCommCom = requestBody.get("txnCommCom");
