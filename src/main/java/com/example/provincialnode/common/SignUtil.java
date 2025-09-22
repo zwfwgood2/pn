@@ -98,17 +98,58 @@ public class SignUtil {
     }
 
     public static void main(String[] args) throws Exception {
-        String data="zhangsan";
-        String privateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgKc2O0VKMKis8BXs7qoyG9rI5ZEhQDJ+EI6dkccdvkMOgCgYIKoEcz1UBgi2hRANCAAQJa0ePyHLISNNjcQIT2XyLZPoBCEQ6y4Piqp/ZQjh7FUfmtsgEnKuDZ113Jj5/4UYGt0C4th5GKYVj1aoW2BQW";
-        String publicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEMFoUMX2vVVOhrG8tEMA4W82MZ5o0fbNnnG6SSNmT/saVGWX/bJUqKkBqsCjo0h4SXqP4iXk8R1FGO3VXd6+q4w==";
-        Map<String, Object> stringStringMap = signData(data, privateKey, publicKey);
-        log.info("签名结果：{}", stringStringMap);
-        String vpublicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAECWtHj8hyyEjTY3ECE9l8i2T6AQhEOsuD4qqf2UI4exVH5rbIBJyrg2dddyY+f+FGBrdAuLYeRimFY9WqFtgUFg==";
-        String vPrivateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgmaJlZwRi8z/EQYwz18RC/aQ4x+SCdB1e+LvQQgl+wK+gCgYIKoEcz1UBgi2hRANCAAQwWhQxfa9VU6Gsby0QwDhbzYxnmjR9s2ecbpJI2ZP+xpUZZf9slSoqQGqwKOjSHhJeo/iJeTxHUUY7dVd3r6rj";
-        String s = verifySignature(stringStringMap, stringStringMap.get("encryptedData").toString(), vpublicKey, vPrivateKey);
-        log.info("验签结果：{}", s);
-        SM2 sm2 = new SM2(privateKey, vpublicKey);
-        byte[] signData = sm2.sign(data.getBytes());
-        log.info("验签结果：{}", sm2.verify(data.getBytes(), signData));
+        String data="[{\n" +
+                "\"platformId\": 1,\n" +
+                "\"name\": \"金融1\",\n" +
+                "\"uniscId\": \"22222\",\n" +
+                "\"category\": 0,\n" +
+                "\"briefIntroduction\": \"融资贷款\",\n" +
+                "\"settlingTime\": \"2019-02- 10 10:21:15\",\n" +
+                "\"productCount\": 1,\n" +
+                "\"higherAuthorities\": \"\",\n" +
+                "\"province\": \"河北\",\n" +
+                "\"city\": \"石家庄\",\n" +
+                "\"area\": \"长安区\",\n" +
+                "\"address\": \"\",\n" +
+                "\"logo\": \"\",\n" +
+                "\"externalSystemId\": \"1121212112\"\n" +
+                "}]";
+        String nationalPrivateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgKc2O0VKMKis8BXs7qoyG9rI5ZEhQDJ+EI6dkccdvkMOgCgYIKoEcz1UBgi2hRANCAAQJa0ePyHLISNNjcQIT2XyLZPoBCEQ6y4Piqp/ZQjh7FUfmtsgEnKuDZ113Jj5/4UYGt0C4th5GKYVj1aoW2BQW";
+        String nationalPublicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAECWtHj8hyyEjTY3ECE9l8i2T6AQhEOsuD4qqf2UI4exVH5rbIBJyrg2dddyY+f+FGBrdAuLYeRimFY9WqFtgUFg==";
+        String provincialSelfPublicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEMFoUMX2vVVOhrG8tEMA4W82MZ5o0fbNnnG6SSNmT/saVGWX/bJUqKkBqsCjo0h4SXqP4iXk8R1FGO3VXd6+q4w==";
+        String provincialSelfPrivateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgmaJlZwRi8z/EQYwz18RC/aQ4x+SCdB1e+LvQQgl+wK+gCgYIKoEcz1UBgi2hRANCAAQwWhQxfa9VU6Gsby0QwDhbzYxnmjR9s2ecbpJI2ZP+xpUZZf9slSoqQGqwKOjSHhJeo/iJeTxHUUY7dVd3r6rj";
+
+        String cityPublicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAELebssrdL4mRPhsThlO/2PPehqWVC1vMwNgnCia0SIrh2FSRzikm0k6wpoi1ofVNNWNDMq06mBPjBbcChgB+DYw==";
+        String cityPrivateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgp8o7mIIi7QbIO0cwjJIRDQfgToJjQ5kTsoXSzDMODeSgCgYIKoEcz1UBgi2hRANCAAQt5uyyt0viZE+GxOGU7/Y896GpZULW8zA2CcKJrRIiuHYVJHOKSbSTrCmiLWh9U01Y0MyrTqYE+MFtwKGAH4Nj";
+        String citySelfPublicKey="MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEnO2qVUH9CaHTkmOgQSAC6mIm28XDM4e65OOTq53Pc8Sr6/5eQdvjSXlOpKHyDwDGXVVXWjY0Vz6cVEvCIu69nQ==";
+        String citySelfPrivateKey="MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQghr18U9MUTP5FVsXblMTykqTyQUzA2ec/SKD5B+SHObOgCgYIKoEcz1UBgi2hRANCAASc7apVQf0JodOSY6BBIALqYibbxcMzh7rk45Ornc9zxKvr/l5B2+NJeU6kofIPAMZdVVdaNjRXPpxUS8Ii7r2d";
+        //====== 地市平台签名、验签；流程测试===============
+        //地市平台签名
+        Map<String, Object> cityStringStringMap = signData(data,citySelfPrivateKey, cityPublicKey);
+        log.info("地市平台签名结果：{}", cityStringStringMap);
+         //省平台验签
+         String s = verifySignature(cityStringStringMap, cityStringStringMap.get("encryptedData").toString(), citySelfPublicKey, cityPrivateKey);
+         log.info("省平台对地市平台签名的验签结果：{}", s);
+         //省平台签名
+        Map<String, Object> stringStringMap = signData(s,provincialSelfPrivateKey,nationalPublicKey);
+        log.info("省级平台向全国平台请求签名结果：{}", stringStringMap);
+        //全国平台验签
+        String verifySignature = verifySignature(stringStringMap, stringStringMap.get("encryptedData").toString(), provincialSelfPublicKey, nationalPrivateKey);
+        log.info("全国平台对省平台签名的验签结果：{}", verifySignature);
+
+
+        //====== 全国平台签名、验签；流程测试===============
+        //全国平台签名
+//        Map<String, Object> nationalStringStringMap = signData(data,nationalPrivateKey,provincialSelfPublicKey);
+//        log.info("全国平台向省平台响应签名结果：{}", nationalStringStringMap);
+//        //省平台验签
+//        String provincialVerifySignature = verifySignature(nationalStringStringMap, nationalStringStringMap.get("encryptedData").toString(),nationalPublicKey,provincialSelfPrivateKey);
+//        log.info("省平台对全国平台签名的验签结果：{}", provincialVerifySignature);
+//        //省平台签名
+//        Map<String, Object> provincialStringStringMap = signData(data, cityPrivateKey,citySelfPublicKey);
+//        log.info("省级平台向地市平台响应签名结果：{}", provincialStringStringMap);
+//        //地市平台验签
+//        String cityVerifySignature = verifySignature(provincialStringStringMap, provincialStringStringMap.get("encryptedData").toString(), cityPublicKey, citySelfPrivateKey);
+//        log.info("地市平台对省平台签名的验签结果：{}", cityVerifySignature);
     }
 }
