@@ -33,8 +33,9 @@ import java.util.Map;
   }]"
 }
  */
+@Deprecated
 @Slf4j
-@Component("paramValidateNode")
+//@Component("paramValidateNode")
 public class ParamValidateNode implements Node {
 
     @Autowired

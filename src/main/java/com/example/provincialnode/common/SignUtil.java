@@ -26,7 +26,7 @@ public class SignUtil {
      * @return 原文JSON字符串
      */
     public static String verifySignature(Map<String,Object> signature,String encryptedData, String verifyPublicKey, String decryptPrivateKey) throws Exception {
-        //实现需求：使用decryptPrivateKey 解密key 得到SM4的秘钥，使用秘钥解密requestData的到原文， 将原文使用SM2WithSM3算法和verifyPublicKey对数据进行验签，签名值为signatureData，
+        //实现需求：使用decryptPrivateKey 解密key 得到SM4的秘钥，使用秘钥解密requestData得到原文， 将原文使用SM2WithSM3算法和verifyPublicKey对数据进行验签，签名值为signatureData，
         //返回原文值JSON字符串， signature这个map中的数据分别为signatureData 签名数据、key SM4加密秘钥、requestData 加密数据 放入map返回
         // 1. 从参数中获取签名、加密的SM4密钥和加密的数据
         String signatureData = (String) signature.get("signatureData");

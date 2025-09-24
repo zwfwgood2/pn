@@ -28,6 +28,8 @@ public class DataTypeValidator implements ParamValidator {
         switch (dataType) {
             case "string":
                 return paramValue instanceof String;
+            case "json": //TODO 校验是否符合json字符串格式
+                return true;
             case "integer":
             case "int":
                 return paramValue instanceof Integer;
@@ -39,8 +41,10 @@ public class DataTypeValidator implements ParamValidator {
                 return paramValue instanceof Float;
             case "boolean":
                 return paramValue instanceof Boolean;
+            case "iterable":
             case "array":
-                return paramValue instanceof JSONArray || paramValue.getClass().isArray() || paramValue instanceof List;
+                return paramValue instanceof JSONArray || paramValue.getClass().isArray() || paramValue instanceof Iterable;
+            case "map":
             case "object":
                 return paramValue instanceof JSONObject || paramValue instanceof Map;
             default:

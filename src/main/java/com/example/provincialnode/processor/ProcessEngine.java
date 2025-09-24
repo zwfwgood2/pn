@@ -29,6 +29,7 @@ import java.util.concurrent.*;
  *        缓存写同步、公共配置初始化和定时更新逻辑检查
  *        定时token刷新容错处理
  *        定时恢复流程token失效问题
+ *        参数校验支持嵌套
  */
 @Slf4j
 @Component
